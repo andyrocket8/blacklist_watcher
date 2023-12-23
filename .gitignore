@@ -1,0 +1,22 @@
+# Poetry management environment shell script
+poetry.sh
+
+# JetBrains IDE files
+.idea/
+
+# cache files
+__pycache__/
+*.pyc
+.mypy_cache
+.pytest_cache/
+.coverage
+
+# env files
+.env
+*.env
+
+# local experimental folders
+notebooks/
+
+# dist files
+dist/
