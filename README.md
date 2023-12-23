@@ -4,7 +4,7 @@ Watcher application is agent application for online parsing of log files and gat
 
 Application reports information about gathered addresses to Blacklist application using Blacklist API.
 
-Blacklist application published on https://github.com/andyrocket8/blacklist_watcher 
+Blacklist application published on https://github.com/andyrocket8/blacklist 
 
 ## Usage
 Application use YAML configuration file
