@@ -15,7 +15,7 @@ python ./src/main.py <config.yaml>
 Before start install dependencies with poetry dependency manager. File pyproject.toml contains information of deployment modules needed.
 
 ## Container deployment
-You can deploy application in Docker environment
+You can deploy application in Docker environment.
 Dockerfile is located in ./src folder
 
 Build container with 
@@ -71,4 +71,6 @@ logging:
    # Console logging. Use Yes/No for desired option
    console: Yes
 ```
- 
+
+## Status file
+Application creates and actuates status file in JSON format. Status file contains information with tracked (watched) files and refreshes on application exit.
