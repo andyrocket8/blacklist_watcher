@@ -4,6 +4,8 @@ from pathlib import Path
 from pydantic import BaseModel
 from pydantic import field_validator
 
+from src.core.settings import WATCH_PERIOD
+
 from .watcher_schema import WatcherSchema
 
 
@@ -30,6 +32,7 @@ class ConfigLogSchema(BaseModel):
 
 class ConfigSchema(BaseModel):
     watchers: list[WatcherSchema]
+    watch_period: int = WATCH_PERIOD
     status_file: Path
     blacklist_uri: str
     blacklist_token: str = ''

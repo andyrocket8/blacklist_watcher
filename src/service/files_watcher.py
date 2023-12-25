@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import AsyncGenerator
 from typing import Union
 
-from src.core.settings import WATCH_PERIOD
-
 from .file_status import FileStatus
 
 
@@ -14,7 +12,8 @@ class FilesWatcher:
     Watcher for changing files. Watch on file modification date changes
     """
 
-    def __init__(self):
+    def __init__(self, watch_period: int):
+        self.watch_period = watch_period
         # storage for storing file on watching
         self.files_to_watch: list[FileStatus] = []
         # queue for storing processing files
@@ -58,7 +57,7 @@ class FilesWatcher:
             while len(not_processed) > 0:
                 self.processing_files.append(not_processed.pop())
             logging.debug('Finished processing of processing_files queue, queue length: %d', len(self.processing_files))
-            await asyncio.sleep(WATCH_PERIOD)
+            await asyncio.sleep(self.watch_period)
 
     def push(self, file_status_obj: FileStatus):
         # add status object to processing_files queue (should be called after file processing)
