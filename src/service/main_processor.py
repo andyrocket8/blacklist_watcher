@@ -23,8 +23,9 @@ class MainProcessor:
         ps_storage: ProcessingStatusStorage,
         blacklist_uri: str,
         token: str,
+        watch_period: int,
     ):
-        self.watcher_obj = FilesWatcher()
+        self.watcher_obj = FilesWatcher(watch_period)
         self.ps_storage = ps_storage
         self.files_to_process_dict: dict[Path, WatcherSchema] = dict()
         for file_watcher_info in files_to_process:
