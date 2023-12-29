@@ -7,6 +7,7 @@ from typing import Iterable
 from typing import Optional
 from typing import Set
 
+from src.schemas.config import ConfigSchema
 from src.schemas.config import WatcherSchema
 from src.schemas.processing_status import ProcessingStatus
 
@@ -19,13 +20,11 @@ from .processing_status_storage import ProcessingStatusStorage
 class MainProcessor:
     def __init__(
         self,
-        files_to_process: Iterable[WatcherSchema],
+        config: ConfigSchema,
         ps_storage: ProcessingStatusStorage,
-        blacklist_uri: str,
-        token: str,
-        watch_period: int,
     ):
-        self.watcher_obj = FilesWatcher(watch_period)
+        files_to_process: Iterable[WatcherSchema] = config.watchers
+        self.watcher_obj = FilesWatcher(config.watch_period)
         self.ps_storage = ps_storage
         self.files_to_process_dict: dict[Path, WatcherSchema] = dict()
         for file_watcher_info in files_to_process:
@@ -39,8 +38,8 @@ class MainProcessor:
             # store element in internal dictionary
             self.files_to_process_dict[Path(file_watcher_info.filename)] = file_watcher_info
         self.watcher_task: Optional[asyncio.Task] = None
-        self.blacklist_uri = blacklist_uri
-        self.token = token
+        self.blacklist_uri: str = config.blacklist_uri
+        self.token: str = config.blacklist_token
 
     async def save_configuration(self):
         await self.ps_storage.save_async()
