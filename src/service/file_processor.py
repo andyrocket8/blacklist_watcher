@@ -63,21 +63,27 @@ class FileProcessor:
 
     async def process_file_contents(self):
         file_parser_obj = FileParser(self.file_status_obj.file_path)
-        offset: int = 0
+        offset: int = self.processing_status_obj.current_offset
         records: list[BlackListSyncSchema] = []
-        async for offset, parsed_data in file_parser_obj.parse_lines(
-            self.processing_status_obj.current_offset, self.watcher_schema_obj.regex
-        ):
-            if parsed_data is not None:
-                address: str = parsed_data[self.watcher_schema_obj.address_description.tuple_position]
-                event_desc: str = parsed_data[self.watcher_schema_obj.event_description.tuple_position]
-                assert (
-                    self.watcher_schema_obj.event_description.event_mapping_dict is not None
-                ), 'event_description on this stage must be defined'
-                event_category: EventCategory = self.watcher_schema_obj.event_description.event_mapping_dict[event_desc]
-                logging.debug('Extracted log event: %s, address: %s', event_category, address)
-                records.append(BlackListSyncSchema(category=event_category, address=IPv4Address(address)))
+        try:
+            async for offset, parsed_data in file_parser_obj.parse_lines(
+                self.processing_status_obj.current_offset, self.watcher_schema_obj.regex
+            ):
+                if parsed_data is not None:
+                    address: str = parsed_data[self.watcher_schema_obj.address_description.tuple_position]
+                    event_desc: str = parsed_data[self.watcher_schema_obj.event_description.tuple_position]
+                    assert (
+                        self.watcher_schema_obj.event_description.event_mapping_dict is not None
+                    ), 'event_description on this stage must be defined'
+                    event_category: EventCategory = self.watcher_schema_obj.event_description.event_mapping_dict[
+                        event_desc
+                    ]
+                    logging.debug('Extracted log event: %s, address: %s', event_category, address)
+                    records.append(BlackListSyncSchema(category=event_category, address=IPv4Address(address)))
+        except OSError as e:
+            logging.error('Error while processing file, details: %s', str(e))
         if len(records):
+            # Try to process fetched records (if any)
             sync_obj = BlackListSync(self.blacklist_uri, self.token)
             await sync_obj.process_data(self.watcher_schema_obj.agent, records)
         # actuate current file offset

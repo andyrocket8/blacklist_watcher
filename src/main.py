@@ -57,9 +57,7 @@ def main():
     processing_status_storage = ProcessingStatusStorage(config.status_file)
     # load status file on startup
     processing_status_storage.load()
-    files_processor = MainProcessor(
-        config.watchers, processing_status_storage, config.blacklist_uri, config.blacklist_token, config.watch_period
-    )
+    files_processor = MainProcessor(config, processing_status_storage)
     loop = asyncio.new_event_loop()
     try:
         loop.run_until_complete(files_processor.run())
