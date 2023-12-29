@@ -1,15 +1,19 @@
 # Class for storing file process status.
 # Can load and save status (on program reload)
+import asyncio
 import json
 import logging
+from datetime import timedelta
 from pathlib import Path
 from typing import Optional
 from typing import Union
 
 import aiofiles
 
+from src.core.settings import SAVE_STATUS_SCHEDULE_PERIOD
 from src.schemas.processing_status import ProcessingStatus
 from src.utils import calc_starting_hash
+from src.utils import curr_datetime
 
 
 class ProcessingStatusStorage:
@@ -65,3 +69,16 @@ class ProcessingStatusStorage:
 
     def get(self, file_name: Path) -> Optional[ProcessingStatus]:
         return self.storage.get(file_name, None)
+
+    def schedule_save_task_execution(self, loop: asyncio.AbstractEventLoop):
+        loop.call_later(SAVE_STATUS_SCHEDULE_PERIOD, self.save_task)
+        logging.debug(
+            'Reschedule periodic status save task on %s',
+            curr_datetime() + timedelta(seconds=SAVE_STATUS_SCHEDULE_PERIOD),
+        )
+
+    def save_task(self):
+        logging.debug('Run periodic status save task')
+        asyncio.create_task(self.save_async())
+        loop = asyncio.get_running_loop()
+        self.schedule_save_task_execution(loop)
