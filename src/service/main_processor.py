@@ -74,6 +74,9 @@ class MainProcessor:
             else:
                 logging.warning('Process bootstrap: watched file %s is not exist', status_file_obj.file_path)
         logging.debug('Bootstrap sync completed')
+        # Schedule regular status file save
+        self.ps_storage.schedule_save_task_execution(loop)
+        # Track file changes with FilesWatcher class
         try:
             async for status_file_obj in self.watcher_obj.watch():
                 logging.debug('File %s changed. Starting file processing', status_file_obj.file_path)

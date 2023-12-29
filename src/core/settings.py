@@ -9,6 +9,7 @@ LOG_FORMAT = '%(asctime)s %(levelname)s [%(name)s] %(message)s'
 
 # Watcher settings
 WATCH_PERIOD = 2  # interval for watcher checks (in seconds)
+SAVE_STATUS_SCHEDULE_PERIOD = 300  # interval for saving status file
 
 # Blacklist handlers URIs
 BLACKLIST_ADDRESS_HANDLER = '/addresses/banned'
