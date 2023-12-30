@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from logging.handlers import WatchedFileHandler
 from typing import Union
 
 from pydantic import ValidationError
@@ -20,10 +21,10 @@ from src.service import ProcessingStatusStorage
 
 
 def init_logging(logging_data: ConfigLogSchema):
-    handlers: list[Union[logging.FileHandler, logging.StreamHandler]] = []
+    handlers: list[Union[WatchedFileHandler, logging.StreamHandler]] = []
     formatter = logging.Formatter(LOG_FORMAT)
     if logging_data.filename:
-        file_handler = logging.FileHandler(logging_data.filename)
+        file_handler = WatchedFileHandler(logging_data.filename)
         file_handler.setLevel(logging_data.level)
         file_handler.setFormatter(formatter)
         handlers.append(file_handler)
