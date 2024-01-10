@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections import deque
 from pathlib import Path
 from typing import AsyncGenerator
 from typing import Union
@@ -17,7 +18,7 @@ class FilesWatcher:
         # storage for storing file on watching
         self.files_to_watch: list[FileStatus] = []
         # queue for storing processing files
-        self.processing_files: list[FileStatus] = []
+        self.processing_files: deque[FileStatus] = deque()
 
     def add_watcher(self, file_name: Union[str, Path]) -> FileStatus:
         """Add FileStatus object to watcher's list and to "processing_files" queue"""
@@ -38,7 +39,7 @@ class FilesWatcher:
         """
         while True:
             logging.debug('Start processing of processing_files queue, queue length: %d', len(self.processing_files))
-            not_processed = []
+            not_processed: deque[FileStatus] = deque()
             while len(self.processing_files) > 0:
                 file_status_obj = self.processing_files.pop()
                 # check change of file date and time modification or file size change. Actuate both metrics on change

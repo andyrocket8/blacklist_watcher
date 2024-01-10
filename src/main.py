@@ -8,6 +8,8 @@ from typing import Union
 from pydantic import ValidationError
 from yaml import load as load_yaml
 
+from version import get_version
+
 try:
     from yaml import CLoader as Loader
 except ImportError:
@@ -38,7 +40,7 @@ def init_logging(logging_data: ConfigLogSchema):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='File watcher',
+        prog='File watcher, version %s' % get_version(),
         description='Perform file watching and invoke actions on file contents change',
         usage='python ./src/main.py <filename>\n       where filename is YAML configuration file',
     )
@@ -54,7 +56,7 @@ def main():
         sys.exit(1)
 
     init_logging(config.logging)
-    logging.info('File watcher: application started')
+    logging.info('File watcher, version %s: application started' % get_version())
     processing_status_storage = ProcessingStatusStorage(config.status_file)
     # load status file on startup
     processing_status_storage.load()
