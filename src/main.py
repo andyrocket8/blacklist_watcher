@@ -8,7 +8,7 @@ from typing import Union
 from pydantic import ValidationError
 from yaml import load as load_yaml
 
-from src.version import get_version
+from version import get_version
 
 try:
     from yaml import CLoader as Loader
