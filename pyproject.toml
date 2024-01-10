@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "watcher"
-version = "0.1.0"
+version = "1.0.1"
 description = "File watcher for parsing information online"
 authors = ["Dmitriev Andrey <justkeepwalking@yandex.ru>"]
 readme = "README.md"

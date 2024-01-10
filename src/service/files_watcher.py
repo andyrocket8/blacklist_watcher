@@ -41,7 +41,7 @@ class FilesWatcher:
             logging.debug('Start processing of processing_files queue, queue length: %d', len(self.processing_files))
             not_processed: deque[FileStatus] = deque()
             while len(self.processing_files) > 0:
-                file_status_obj = self.processing_files.pop()
+                file_status_obj = self.processing_files.popleft()
                 # check change of file date and time modification or file size change. Actuate both metrics on change
                 if file_status_obj.changed:
                     # status object processor should push processed object after processing.
@@ -56,7 +56,7 @@ class FilesWatcher:
                     not_processed.append(file_status_obj)
             # all files in self.processing_files are processed - fill self.processing_files with not processed files
             while len(not_processed) > 0:
-                self.processing_files.append(not_processed.pop())
+                self.processing_files.append(not_processed.popleft())
             logging.debug('Finished processing of processing_files queue, queue length: %d', len(self.processing_files))
             await asyncio.sleep(self.watch_period)
 
