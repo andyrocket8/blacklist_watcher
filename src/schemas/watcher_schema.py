@@ -38,9 +38,13 @@ class AddressDescription(FieldDescription):
     pass
 
 
-class WatcherSchema(BaseModel):
-    filename: str  # file name
+class WatcherRule(BaseModel):
     regex: str  # regex for events detection
     agent: str  # agent name for further reporting
     address_description: AddressDescription  # mapping for address description
     event_description: EventDescription  # mapping for event description
+
+
+class WatcherSchema(BaseModel):
+    filename: str  # file name
+    rules: list[WatcherRule]  # Watcher rules. Can contain [1...n] rules for processing

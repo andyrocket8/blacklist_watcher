@@ -10,6 +10,7 @@ from httpx import RequestError
 from src.core.settings import BLACKLIST_ADDRESS_HANDLER
 from src.core.settings import BLACKLIST_BLOCK_METHOD_URI
 from src.core.settings import BLACKLIST_UNBLOCK_METHOD_URI
+from src.schemas.address_dedup_info import AddressDedupInfo
 from src.schemas.blacklist_schema import BlackListCallSchema
 from src.schemas.blacklist_schema import BlackListSyncSchema
 from src.schemas.watcher_schema import EventCategory
@@ -47,21 +48,41 @@ class BlackListSync:
                     f'{exc.request.url!r}, details: {str(exc)}'
                 )
 
-    async def process_data(self, agent_name: str, addresses_info: list[BlackListSyncSchema]):
+    async def process_data(self, addresses_info: list[BlackListSyncSchema]):
+        # Process parsed data with deduplication
         current_time = curr_datetime()
-        addresses_count: defaultdict[IPv4Address, int] = defaultdict(int)
-        #
+        # Prepare variables for further deduplication
+        addresses_count: defaultdict[IPv4Address, AddressDedupInfo] = defaultdict(AddressDedupInfo)
+        agents: tuple[str, ...] = ()
         for address_info in addresses_info:
-            addresses_count[address_info.address] += 1 if address_info.category == EventCategory.block else -1
-        block_addresses: list[IPv4Address] = [key for key, value in addresses_count.items() if value > 0]
-        unblock_addresses: list[IPv4Address] = [key for key, value in addresses_count.items() if value < 0]
-        if block_addresses:
-            await self.sync_data(
-                EventCategory.block,
-                BlackListCallSchema(source_agent=agent_name, action_time=current_time, addresses=block_addresses),
+            # on  operation below address information counter is filled with agent info
+            addresses_count[address_info.address] += AddressDedupInfo(
+                source_agent=address_info.source_agent, count=1 if address_info.category == EventCategory.block else -1
             )
-        if unblock_addresses:
-            await self.sync_data(
-                EventCategory.unblock,
-                BlackListCallSchema(source_agent=agent_name, action_time=current_time, addresses=unblock_addresses),
-            )
+            if address_info.source_agent not in agents:
+                agents = agents + (address_info.source_agent,)
+        # process unblock operations
+        print(addresses_count)
+        for agent_name in agents:
+            unblock_addresses: list[IPv4Address] = [
+                key
+                for key, address_record in addresses_count.items()
+                if address_record.count < 0 and address_record.source_agent == agent_name
+            ]
+            if unblock_addresses:
+                await self.sync_data(
+                    EventCategory.unblock,
+                    BlackListCallSchema(source_agent=agent_name, action_time=current_time, addresses=unblock_addresses),
+                )
+        # process block operations
+        for agent_name in agents:
+            block_addresses: list[IPv4Address] = [
+                key
+                for key, address_record in addresses_count.items()
+                if address_record.count > 0 and address_record.source_agent == agent_name
+            ]
+            if block_addresses:
+                await self.sync_data(
+                    EventCategory.block,
+                    BlackListCallSchema(source_agent=agent_name, action_time=current_time, addresses=block_addresses),
+                )

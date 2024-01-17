@@ -9,7 +9,7 @@ from src.schemas.watcher_schema import WatcherSchema
 from src.utils.file_utils import calc_starting_hash_async
 
 from .blacklist_sync import BlackListSync
-from .file_reader import FileParser
+from .file_parser import FileWatcherParser
 from .file_status import FileStatus
 
 
@@ -62,30 +62,37 @@ class FileProcessor:
         self.processing_status_obj.file_date_time = self.file_status_obj.current_date
 
     async def process_file_contents(self):
-        file_parser_obj = FileParser(self.file_status_obj.file_path)
+        file_parser_obj = FileWatcherParser(self.file_status_obj.file_path)
         offset: int = self.processing_status_obj.current_offset
-        records: list[BlackListSyncSchema] = []
+        parsed_records: list[BlackListSyncSchema] = []
         try:
-            async for offset, parsed_data in file_parser_obj.parse_lines(
-                self.processing_status_obj.current_offset, self.watcher_schema_obj.regex
+            async for offset, rule, parsed_data in file_parser_obj.parse_lines(
+                self.processing_status_obj.current_offset, self.watcher_schema_obj.rules
             ):
-                if parsed_data is not None:
-                    address: str = parsed_data[self.watcher_schema_obj.address_description.tuple_position]
-                    event_desc: str = parsed_data[self.watcher_schema_obj.event_description.tuple_position]
+                if rule is not None:
+                    # process detected string with rule definition
+                    assert parsed_data is not None, 'Check of parsed tuple value failed!'
+                    address: str = parsed_data[rule.address_description.tuple_position]
+                    event_desc: str = parsed_data[rule.event_description.tuple_position]
                     assert (
-                        self.watcher_schema_obj.event_description.event_mapping_dict is not None
+                        rule.event_description.event_mapping_dict is not None
                     ), 'event_description on this stage must be defined'
-                    event_category: EventCategory = self.watcher_schema_obj.event_description.event_mapping_dict[
-                        event_desc
-                    ]
-                    logging.debug('Extracted log event: %s, address: %s', event_category, address)
-                    records.append(BlackListSyncSchema(category=event_category, address=IPv4Address(address)))
+                    event_category: EventCategory = rule.event_description.event_mapping_dict[event_desc]
+                    source_agent = rule.agent
+                    logging.debug(
+                        'Extracted log event: %s, address: %s, agent: %s', event_category, address, source_agent
+                    )
+                    parsed_records.append(
+                        BlackListSyncSchema(
+                            category=event_category, address=IPv4Address(address), source_agent=source_agent
+                        )
+                    )
         except OSError as e:
             logging.error('Error while processing file, details: %s', str(e))
-        if len(records):
+        if len(parsed_records):
             # Try to process fetched records (if any)
             sync_obj = BlackListSync(self.blacklist_uri, self.token)
-            await sync_obj.process_data(self.watcher_schema_obj.agent, records)
+            await sync_obj.process_data(parsed_records)
         # actuate current file offset
         self.processing_status_obj.current_offset = offset
         logging.debug('File %s, current offset: %s', self.file_status_obj.file_path, offset)

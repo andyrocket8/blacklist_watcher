@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from src.service.file_reader import FileParser
+from src.service.file_parser import FileParser
 from src.utils.file_utils import compose_file
 from src.utils.file_utils import create_temp_dir
 from src.utils.file_utils import remove_dir
