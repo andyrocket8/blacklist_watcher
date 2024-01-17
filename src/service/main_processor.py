@@ -33,8 +33,9 @@ class MainProcessor:
             logging.debug('Added watcher for file %s', file_watcher_info.filename)
             if not status_obj.file_path.is_file():
                 logging.warning('Watched file %s does not exists', file_watcher_info.filename)
-            # fill event_description dictionary for WatcherSchema instance (for faster event category detection)
-            file_watcher_info.event_description.fill_dictionary()
+            for rule in file_watcher_info.rules:
+                # fill event_description dictionary for WatcherSchema instance (for faster event category detection)
+                rule.event_description.fill_dictionary()
             # store element in internal dictionary
             self.files_to_process_dict[Path(file_watcher_info.filename)] = file_watcher_info
         self.watcher_task: Optional[asyncio.Task] = None

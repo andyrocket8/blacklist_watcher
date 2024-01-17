@@ -1,10 +1,7 @@
 from pathlib import Path
 from typing import AsyncGenerator
-from typing import Optional
 
 import aiofiles
-
-from src.utils import parse_regex
 
 
 class FileReader:
@@ -20,15 +17,3 @@ class FileReader:
                 yield offset, line
                 if len(line) == 0:
                     break
-
-
-class FileParser(FileReader):
-    """File reader with capabilities of line parsing"""
-
-    async def parse_lines(self, offset: int, regex: str) -> AsyncGenerator[tuple[int, Optional[tuple]], None]:
-        async for offset, line in self.read_lines(offset):
-            if line:
-                parsed = parse_regex(regex, line)
-                if parsed is not None:
-                    yield offset, parsed
-        yield offset, None
