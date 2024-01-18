@@ -17,6 +17,33 @@ from src.schemas.watcher_schema import EventCategory
 from src.utils import curr_datetime
 
 
+def count_addresses_data(
+    addresses_info: list[BlackListSyncSchema],
+) -> tuple[defaultdict[IPv4Address, AddressDedupInfo], tuple[str, ...]]:
+    # Prepare variables for further deduplication
+    addresses_count: defaultdict[IPv4Address, AddressDedupInfo] = defaultdict(AddressDedupInfo)
+    agents: tuple[str, ...] = ()
+    for address_info in addresses_info:
+        # on  operation below address information counter is filled with agent info
+        addresses_count[address_info.address] += AddressDedupInfo(
+            source_agent=address_info.source_agent, count=1 if address_info.category == EventCategory.block else -1
+        )
+        if address_info.source_agent not in agents:
+            agents = agents + (address_info.source_agent,)
+    return addresses_count, agents
+
+
+def aggregate_by_agent(
+    block: bool, data: defaultdict[IPv4Address, AddressDedupInfo], agent_name: str
+) -> list[IPv4Address]:
+    return [
+        key
+        for key, address_record in data.items()
+        if (address_record.count > 0 if block else address_record.count < 0)
+        and address_record.source_agent == agent_name
+    ]
+
+
 class BlackListSync:
     def __init__(self, call_uri: str, token: Optional[str]):
         self.call_uri = call_uri
@@ -51,24 +78,10 @@ class BlackListSync:
     async def process_data(self, addresses_info: list[BlackListSyncSchema]):
         # Process parsed data with deduplication
         current_time = curr_datetime()
-        # Prepare variables for further deduplication
-        addresses_count: defaultdict[IPv4Address, AddressDedupInfo] = defaultdict(AddressDedupInfo)
-        agents: tuple[str, ...] = ()
-        for address_info in addresses_info:
-            # on  operation below address information counter is filled with agent info
-            addresses_count[address_info.address] += AddressDedupInfo(
-                source_agent=address_info.source_agent, count=1 if address_info.category == EventCategory.block else -1
-            )
-            if address_info.source_agent not in agents:
-                agents = agents + (address_info.source_agent,)
+        addresses_count, agents = count_addresses_data(addresses_info)
         # process unblock operations
-        print(addresses_count)
         for agent_name in agents:
-            unblock_addresses: list[IPv4Address] = [
-                key
-                for key, address_record in addresses_count.items()
-                if address_record.count < 0 and address_record.source_agent == agent_name
-            ]
+            unblock_addresses: list[IPv4Address] = aggregate_by_agent(False, addresses_count, agent_name)
             if unblock_addresses:
                 await self.sync_data(
                     EventCategory.unblock,
@@ -76,11 +89,7 @@ class BlackListSync:
                 )
         # process block operations
         for agent_name in agents:
-            block_addresses: list[IPv4Address] = [
-                key
-                for key, address_record in addresses_count.items()
-                if address_record.count > 0 and address_record.source_agent == agent_name
-            ]
+            block_addresses: list[IPv4Address] = aggregate_by_agent(True, addresses_count, agent_name)
             if block_addresses:
                 await self.sync_data(
                     EventCategory.block,

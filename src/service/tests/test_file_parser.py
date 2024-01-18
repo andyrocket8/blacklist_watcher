@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Generator
 
 import pytest
 
@@ -10,8 +11,8 @@ from src.utils.file_utils import remove_dir
 from .test_file_reader_data import OK_TEST_FILE_DATA
 
 
-@pytest.fixture
-def file_test_contents():
+@pytest.fixture()
+def file_test_contents() -> Generator[Path, None, None]:
     temp_dir = create_temp_dir()
     try:
         file_name = temp_dir.joinpath('ok_file_data.log')
@@ -46,3 +47,9 @@ async def test_file_reader(file_test_contents):
     assert ban_count == 2, 'Expecting count of Ban records are not match (with offset)'
     assert unban_count == 1, 'Expecting count of Unban records are not match (with offset)'
     assert offset == 6316, 'Expecting offset value is not match (with offset)'
+
+
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize('file_test_contents', [(OK_TEST_FILE_DATA_SI, 'ok_file_data_si.log')])
+# async def test_file_watcher_parser(file_test_contents):
+#     pass
