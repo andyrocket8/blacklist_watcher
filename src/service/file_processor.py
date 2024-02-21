@@ -61,6 +61,7 @@ class FileProcessor:
     async def process_file_contents(self):
         file_parser_obj = FileWatcherParser(self.processing_status_obj.file_name)
         offset: int = self.processing_status_obj.current_offset
+        # parse all rules in one file
         offset, parsed_records = await file_parser_obj.parse_file_with_rules(offset, self.watcher_schema_obj.rules)
         if len(parsed_records):
             # Try to process fetched records (if any)

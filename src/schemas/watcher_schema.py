@@ -6,15 +6,15 @@ from pydantic import BaseModel
 
 class EventCategory(str, Enum):
     # Enum for event description. Map description to parsed values from log file in EventSchema class
-    block = 'block'
-    unblock = 'unblock'
+    add_address = 'add_address'  # add address in addresses (banned or allowed) hence call .../add handle
+    del_address = 'del_address'  # delete address from addresses (banned or allowed) hence call .../delete handle
 
 
 class EventSchema(BaseModel):
     """
     Example (for fail2ban.log):
-        EventSchema(event_string='Ban', event_category='block')
-        EventSchema(event_string='Unban', event_category='unblock')
+        EventSchema(event_string='Ban', event_category='add_address')
+        EventSchema(event_string='Unban', event_category='del_address')
     """
 
     event_string: str  # parsed value from log file
@@ -38,11 +38,19 @@ class AddressDescription(FieldDescription):
     pass
 
 
+class AddressCategory(str, Enum):
+    # Enum for address category. It can be 'banned' and 'allowed'
+    banned = 'banned'  # address record would affect black list addresses
+    allowed = 'allowed'  # address record would affect white list addresses
+
+
 class WatcherRule(BaseModel):
     regex: str  # regex for events detection
     agent: str  # agent name for further reporting
     address_description: AddressDescription  # mapping for address description
     event_description: EventDescription  # mapping for event description
+    address_group: str = ''  # address group for HTTP request. If not set - it will be 'default', no need to fill!
+    address_category: AddressCategory  # banned / allowed
 
 
 class WatcherSchema(BaseModel):

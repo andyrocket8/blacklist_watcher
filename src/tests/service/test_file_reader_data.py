@@ -146,28 +146,20 @@ TRAILER_DICT = {
     'event_description': {
         'tuple_position': 0,
         'event_mapping': [
-            {'event_string': 'Ban', 'event_category': 'block'},
-            {'event_string': 'Unban', 'event_category': 'unblock'},
+            {'event_string': 'Ban', 'event_category': 'add_address'},
+            {'event_string': 'Unban', 'event_category': 'del_address'},
         ],
     },
 }
 
 SSHD_AGENT_NAME = 'sshd'
 SI_RULE_SSHD = WatcherRule(
-    **{
-        'regex': get_regex_str(SSHD_AGENT_NAME),
-        'agent': SSHD_AGENT_NAME,
-    }
-    | TRAILER_DICT
+    **{'regex': get_regex_str(SSHD_AGENT_NAME), 'agent': SSHD_AGENT_NAME, 'address_category': 'banned'} | TRAILER_DICT
 )
 
 WWW_AGENT_NAME = 'www'
 SI_RULE_WWW = WatcherRule(
-    **{
-        'regex': get_regex_str(WWW_AGENT_NAME),
-        'agent': WWW_AGENT_NAME,
-    }
-    | TRAILER_DICT
+    **{'regex': get_regex_str(WWW_AGENT_NAME), 'agent': WWW_AGENT_NAME, 'address_category': 'allowed'} | TRAILER_DICT
 )
 
 SI_RULE_SSHD.event_description.fill_dictionary()
