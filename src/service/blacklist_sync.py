@@ -48,7 +48,10 @@ class BlackListSync:
             if self.token:
                 headers |= {'Authorization': f'Bearer {self.token}'}
             try:
-                r = await client.post(call_uri, json=data.model_dump(mode='json'), headers=headers)
+                request_body = data.model_dump(mode='json')
+                if request_body['address_group'] == '':
+                    del request_body['address_group']
+                r = await client.post(call_uri, json=request_body, headers=headers)
                 r.raise_for_status()
                 logging.debug('Successful call to %s, response: %s', r.request.url, r.text)
             except RequestError as exc:

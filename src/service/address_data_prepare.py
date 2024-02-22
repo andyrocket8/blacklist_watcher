@@ -22,6 +22,9 @@ def deduplicate_addresses_data(
     dict[CallDestinationCategory, defaultdict[IPv4Address, AddressDedupInfo]], dict[CallDestinationCategory, set[str]]
 ]:
     """
+    Deduplicate parsed addresses data (aggregate it by [address_group, address_category],
+    gathering 'agent name' (using last one) and counting 'add' and 'delete' operations.
+
     :param addresses_info: list[BlackListSyncSchema]
     :return:
         - dictionary with keys with knowledge about handle calling destination (address category, address group)
@@ -53,9 +56,10 @@ def deduplicate_addresses_data(
     return call_destination_category_dict, call_destination_agents_dict
 
 
-def aggregate_by_agent(
+def filter_by_agent_and_category(
     add_address: bool, data: defaultdict[IPv4Address, AddressDedupInfo], agent_name: str
 ) -> list[IPv4Address]:
+    """Filter deduplicated data by agent name and event category"""
     return [
         key
         for key, address_record in data.items()
@@ -75,7 +79,7 @@ def addresses_data_for_sync(
         # process unblock operations, iterate over all stored agents
         # for every agent connected with processed destination
         for agent_name in agents_dict[destination_key]:
-            delete_addresses: list[IPv4Address] = aggregate_by_agent(False, addresses_info_dict, agent_name)
+            delete_addresses: list[IPv4Address] = filter_by_agent_and_category(False, addresses_info_dict, agent_name)
             if delete_addresses:
                 yield (
                     EventCategory.del_address,
@@ -89,7 +93,7 @@ def addresses_data_for_sync(
                 )
         # process block operations
         for agent_name in agents_dict[destination_key]:
-            add_addresses: list[IPv4Address] = aggregate_by_agent(True, addresses_info_dict, agent_name)
+            add_addresses: list[IPv4Address] = filter_by_agent_and_category(True, addresses_info_dict, agent_name)
             if add_addresses:
                 yield (
                     EventCategory.add_address,

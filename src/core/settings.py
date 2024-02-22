@@ -4,6 +4,8 @@ import zoneinfo
 CUR_TZ = zoneinfo.ZoneInfo('Europe/Moscow')
 UTC_TZ = zoneinfo.ZoneInfo('UTC')
 
+POETRY_CONFIG_FIlE = 'pyproject.toml'
+
 # Logging settings
 LOG_FORMAT = '%(asctime)s %(levelname)s [%(name)s] %(message)s'
 
