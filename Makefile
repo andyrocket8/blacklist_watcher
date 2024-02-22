@@ -14,6 +14,10 @@ _check:
 _test:
 		poetry run pytest -s -rs -v
 
+_coverage:
+		poetry run coverage run -m pytest
+		poetry run coverage html
+
 build:
 		$(MAKE) _builder
 
@@ -25,3 +29,6 @@ check:
 
 test:
 		$(MAKE) _test
+
+coverage:
+		$(MAKE) _coverage
