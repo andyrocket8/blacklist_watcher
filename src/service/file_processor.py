@@ -5,6 +5,7 @@ from src.schemas.processing_status import ProcessingStatus
 from src.schemas.watcher_schema import WatcherSchema
 from src.utils.file_utils import calc_starting_hash_async
 
+from .address_data_prepare import addresses_data_for_sync
 from .blacklist_sync import BlackListSync
 from .file_parser import FileWatcherParser
 from .file_status import FileStatus
@@ -61,11 +62,13 @@ class FileProcessor:
     async def process_file_contents(self):
         file_parser_obj = FileWatcherParser(self.processing_status_obj.file_name)
         offset: int = self.processing_status_obj.current_offset
+        # parse all rules in one file
         offset, parsed_records = await file_parser_obj.parse_file_with_rules(offset, self.watcher_schema_obj.rules)
         if len(parsed_records):
-            # Try to process fetched records (if any)
             sync_obj = BlackListSync(self.blacklist_uri, self.token)
-            await sync_obj.process_data(parsed_records)
+            # Prepare data and pass it to Blacklist service
+            for event_category, address_category, request_data in addresses_data_for_sync(parsed_records):
+                await sync_obj.sync_data(event_category, address_category, request_data)
         # actuate current file offset
         self.processing_status_obj.current_offset = offset
         logging.debug('File %s, current offset: %s', self.file_status_obj.file_path, offset)

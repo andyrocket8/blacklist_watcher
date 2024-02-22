@@ -11,6 +11,9 @@ _clean_builder:
 _check:
 		bash .git/hooks/pre-commit
 
+_test:
+		poetry run pytest -s -rs -v
+
 build:
 		$(MAKE) _builder
 
@@ -19,3 +22,6 @@ clean_build:
 
 check:
 		$(MAKE) _check
+
+test:
+		$(MAKE) _test

@@ -53,12 +53,17 @@ class FileWatcherParser(FileReader):
                     ), 'event_description on this stage must be defined'
                     event_category: EventCategory = rule.event_description.event_mapping_dict[event_desc]
                     source_agent = rule.agent
+                    address_group = rule.address_group if rule.address_group is not None else ''
                     logging.debug(
                         'Extracted log event: %s, address: %s, agent: %s', event_category, address, source_agent
                     )
                     parsed_records.append(
                         BlackListSyncSchema(
-                            category=event_category, address=IPv4Address(address), source_agent=source_agent
+                            event_category=event_category,
+                            address=IPv4Address(address),
+                            source_agent=source_agent,
+                            address_group=address_group,
+                            address_category=rule.address_category,
                         )
                     )
         except OSError as e:

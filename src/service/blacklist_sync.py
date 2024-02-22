@@ -1,47 +1,17 @@
 import logging
-from collections import defaultdict
-from ipaddress import IPv4Address
 from typing import Optional
 
 from httpx import AsyncClient
 from httpx import HTTPStatusError
 from httpx import RequestError
 
-from src.core.settings import BLACKLIST_ADDRESS_HANDLER
-from src.core.settings import BLACKLIST_BLOCK_METHOD_URI
-from src.core.settings import BLACKLIST_UNBLOCK_METHOD_URI
-from src.schemas.address_dedup_info import AddressDedupInfo
+from src.core.settings import BLACKLIST_ADD_METHOD_SUFFIX
+from src.core.settings import BLACKLIST_ALLOWED_ADDRESS_PREFIX
+from src.core.settings import BLACKLIST_BANNED_ADDRESS_PREFIX
+from src.core.settings import BLACKLIST_DELETE_METHOD_SUFFIX
 from src.schemas.blacklist_schema import BlackListCallSchema
-from src.schemas.blacklist_schema import BlackListSyncSchema
+from src.schemas.watcher_schema import AddressCategory
 from src.schemas.watcher_schema import EventCategory
-from src.utils import curr_datetime
-
-
-def count_addresses_data(
-    addresses_info: list[BlackListSyncSchema],
-) -> tuple[defaultdict[IPv4Address, AddressDedupInfo], tuple[str, ...]]:
-    # Prepare variables for further deduplication
-    addresses_count: defaultdict[IPv4Address, AddressDedupInfo] = defaultdict(AddressDedupInfo)
-    agents: tuple[str, ...] = ()
-    for address_info in addresses_info:
-        # on  operation below address information counter is filled with agent info
-        addresses_count[address_info.address] += AddressDedupInfo(
-            source_agent=address_info.source_agent, count=1 if address_info.category == EventCategory.block else -1
-        )
-        if address_info.source_agent not in agents:
-            agents = agents + (address_info.source_agent,)
-    return addresses_count, agents
-
-
-def aggregate_by_agent(
-    block: bool, data: defaultdict[IPv4Address, AddressDedupInfo], agent_name: str
-) -> list[IPv4Address]:
-    return [
-        key
-        for key, address_record in data.items()
-        if (address_record.count > 0 if block else address_record.count < 0)
-        and address_record.source_agent == agent_name
-    ]
 
 
 class BlackListSync:
@@ -49,22 +19,39 @@ class BlackListSync:
         self.call_uri = call_uri
         self.token = token
 
-    async def sync_data(self, category: EventCategory, data: BlackListCallSchema):
+    def compose_call_uri(self, event_category: EventCategory, address_category: AddressCategory) -> str:
+        address_prefix = (
+            BLACKLIST_BANNED_ADDRESS_PREFIX
+            if address_category == AddressCategory.banned
+            else BLACKLIST_ALLOWED_ADDRESS_PREFIX
+        )
+        address_suffix = (
+            BLACKLIST_ADD_METHOD_SUFFIX
+            if event_category == EventCategory.add_address
+            else BLACKLIST_DELETE_METHOD_SUFFIX
+        )
+        return f'{self.call_uri}{address_prefix}{address_suffix}'
+
+    async def sync_data(
+        self, event_category: EventCategory, address_category: AddressCategory, data: BlackListCallSchema
+    ):
         async with AsyncClient() as client:
             logging.debug(
-                'Calling Blacklist host for %s, records count: %d',
-                'blocking' if category == EventCategory.block else 'unblocking',
+                'Calling Blacklist host for %s, records count: %d, address category: %s',
+                'adding addresses' if event_category == EventCategory.add_address else 'deleting addresses',
                 len(data.addresses),
+                'banned addresses' if address_category == AddressCategory.banned else 'allowed addresses',
             )
-            call_uri = (
-                f'{self.call_uri}{BLACKLIST_ADDRESS_HANDLER}'
-                f'{BLACKLIST_BLOCK_METHOD_URI if category == EventCategory.block else BLACKLIST_UNBLOCK_METHOD_URI}'
-            )
+            call_uri = self.compose_call_uri(event_category, address_category)
+            # fill headers of request
             headers = {'Content-type': 'application/json'}
             if self.token:
                 headers |= {'Authorization': f'Bearer {self.token}'}
             try:
-                r = await client.post(call_uri, json=data.model_dump(mode='json'), headers=headers)
+                request_body = data.model_dump(mode='json')
+                if request_body['address_group'] == '':
+                    del request_body['address_group']
+                r = await client.post(call_uri, json=request_body, headers=headers)
                 r.raise_for_status()
                 logging.debug('Successful call to %s, response: %s', r.request.url, r.text)
             except RequestError as exc:
@@ -73,25 +60,4 @@ class BlackListSync:
                 logging.error(
                     f'HTTP Error {exc.response.status_code} while requesting Blacklist host '
                     f'{exc.request.url!r}, details: {str(exc)}'
-                )
-
-    async def process_data(self, addresses_info: list[BlackListSyncSchema]):
-        # Process parsed data with deduplication
-        current_time = curr_datetime()
-        addresses_count, agents = count_addresses_data(addresses_info)
-        # process unblock operations
-        for agent_name in agents:
-            unblock_addresses: list[IPv4Address] = aggregate_by_agent(False, addresses_count, agent_name)
-            if unblock_addresses:
-                await self.sync_data(
-                    EventCategory.unblock,
-                    BlackListCallSchema(source_agent=agent_name, action_time=current_time, addresses=unblock_addresses),
-                )
-        # process block operations
-        for agent_name in agents:
-            block_addresses: list[IPv4Address] = aggregate_by_agent(True, addresses_count, agent_name)
-            if block_addresses:
-                await self.sync_data(
-                    EventCategory.block,
-                    BlackListCallSchema(source_agent=agent_name, action_time=current_time, addresses=block_addresses),
                 )

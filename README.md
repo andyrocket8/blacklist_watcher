@@ -63,10 +63,16 @@ watchers:
     # Watcher group definiton       
     - filename: /home/core/develop/secure/stuff/file_watcher/file.log  # File name for watching
       rules:  # Rules for processing file (can be multiple)
+        # Address caterory - defines whether we call .../banned/... or .../allowed/... handlers 
+        address_category: banned 
+        ## String descriptions to pass in Blacklist API /add and /delete method calls 
+        # Agent name 
+        agent: Fail2Ban (development)
+        # Address group (specify if it is not default), can be empty 
+        address_group: default
+        ## Parse parameters 
         # Regex pattern for extracting information from log file. Here is Fail2ban regex pattern 
         regex: .*(Ban|Unban).([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}).*
-        # String description to pass in Blacklist API /add and /delete methods 
-        agent: Fail2Ban (development)
         # Address position in parsed regex variables
         address_description: 
           tuple_position: 1
@@ -77,9 +83,9 @@ watchers:
           # "block" means /add handler execution, "unblock" - /delete execution  
           event_mapping:
             - event_string: Ban
-              event_category: block
+              event_category: add_address
             - event_string: Unban
-              event_category: unblock
+              event_category: del_address
         # Further rules definition 
         ... 
     # Further watcher group definition 
