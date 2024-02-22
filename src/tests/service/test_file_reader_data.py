@@ -180,7 +180,9 @@ SI_RULE_SSHD_SEP_GROUP = WatcherRule(
 
 WWW_AGENT_NAME = 'www'
 SI_RULE_WWW = WatcherRule(
-    **{'regex': get_regex_str(WWW_AGENT_NAME), 'agent': WWW_AGENT_NAME, 'address_category': 'allowed'} | TRAILER_DICT
+    **{'regex': get_regex_str(WWW_AGENT_NAME), 'agent': WWW_AGENT_NAME, 'address_category': 'allowed'}
+    | TRAILER_DICT
+    | {'address_group': None}
 )
 
 SI_RULE_SSHD.event_description.fill_dictionary()

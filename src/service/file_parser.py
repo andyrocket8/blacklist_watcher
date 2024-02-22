@@ -53,7 +53,7 @@ class FileWatcherParser(FileReader):
                     ), 'event_description on this stage must be defined'
                     event_category: EventCategory = rule.event_description.event_mapping_dict[event_desc]
                     source_agent = rule.agent
-                    address_group = rule.address_group
+                    address_group = rule.address_group if rule.address_group is not None else ''
                     logging.debug(
                         'Extracted log event: %s, address: %s, agent: %s', event_category, address, source_agent
                     )

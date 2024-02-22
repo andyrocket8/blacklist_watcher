@@ -49,7 +49,9 @@ class WatcherRule(BaseModel):
     agent: str  # agent name for further reporting
     address_description: AddressDescription  # mapping for address description
     event_description: EventDescription  # mapping for event description
-    address_group: str = ''  # address group for HTTP request. If not set - it will be 'default', no need to fill!
+    address_group: Optional[
+        str
+    ] = ''  # address group for HTTP request. If not set - it will be 'default', no need to fill!
     address_category: AddressCategory  # banned / allowed
 
 
